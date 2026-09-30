@@ -1,0 +1,13 @@
+---
+interface Props {
+  light?: boolean;
+}
+const { light = false } = Astro.props;
+---
+
+<a href="/" class="inline-flex flex-col leading-none" aria-label="Persky, magazin de pescuit, pagina principală">
+  <span class={`text-[2rem] font-extrabold italic tracking-[-0.03em] ${light ? 'text-white' : 'text-ink'}`}>
+    PERSK<span class={light ? 'text-white/70' : 'text-accent'}>Y</span>
+  </span>
+  <span class={`mt-0.5 whitespace-nowrap text-[0.72rem] font-semibold tracking-wide ${light ? 'text-white/60' : 'text-muted'}`}>magazin de pescuit</span>
+</a>

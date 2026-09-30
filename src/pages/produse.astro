@@ -1,0 +1,255 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { BRANDS, CATEGORIES, PRODUCTS, TECHNIQUES } from '../data/catalog';
+
+// Static page, filtered client-side from the URL. TODO(real): catalog SSR cu filtre pe server + paginare.
+const brands = BRANDS.filter((b) => PRODUCTS.some((p) => p.brand === b));
+const maxPrice = Math.ceil(Math.max(...PRODUCTS.map((p) => p.price)) / 10) * 10;
+---
+
+<Layout title="Articole de pescuit" description="Lansete, mulinete, nadă și accesorii de pescuit, filtrate după tehnică și producător.">
+  <div class="wrap pt-5">
+    <nav aria-label="Breadcrumb" class="text-sm text-muted">
+      <ol class="flex flex-wrap gap-1.5">
+        <li><a href="/" class="hover:text-ink hover:underline">Acasă</a> /</li>
+        <li data-crumb-cat hidden><a href="#" class="hover:text-ink hover:underline"></a> /</li>
+        <li data-crumb class="text-ink">Toate produsele</li>
+      </ol>
+    </nav>
+    <div class="mt-3 flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 data-title class="font-display text-[clamp(1.9rem,1.4rem+1.8vw,2.6rem)] font-bold">Toate produsele</h1>
+        <p class="text-sm text-muted" data-count>{PRODUCTS.length} produse</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="button" data-filters-open class="btn btn-line btn-sm lg:hidden"><Icon name="filter" size={18} /> Filtre</button>
+        <label for="sort" class="sr-only">Sortează</label>
+        <select id="sort" class="field h-[38px] min-h-0 w-auto pr-8 text-sm">
+          <option value="recomandate">Recomandate</option>
+          <option value="vandute">Cele mai vândute</option>
+          <option value="pret-asc">Preț crescător</option>
+          <option value="pret-desc">Preț descrescător</option>
+          <option value="rating">Cele mai apreciate</option>
+          <option value="reduceri">Reduceri mari</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mt-5 flex items-start gap-6">
+      <!-- FILTRE -->
+      <aside data-filters class="fixed inset-0 z-[80] hidden bg-black/40 lg:static lg:z-auto lg:block lg:w-[250px] lg:shrink-0 lg:bg-transparent" aria-label="Filtre">
+        <form id="filters" class="ml-auto h-full w-[88%] max-w-[340px] overflow-y-auto bg-white p-5 lg:rounded-lg lg:shadow-sm lg:h-auto lg:w-full lg:max-w-none lg:overflow-visible">
+          <div class="mb-3 flex items-center justify-between lg:hidden">
+            <p class="font-display text-xl font-bold text-ink">Filtre</p>
+            <button type="button" data-filters-close class="grid size-10 place-items-center rounded-lg hover:bg-page" aria-label="Închide filtrele"><Icon name="x" /></button>
+          </div>
+
+          <fieldset>
+            <legend class="font-display text-lg font-bold text-ink">Categorie</legend>
+            <ul class="mt-2 space-y-1 text-[0.95rem]">
+              <li><label class="flex items-center gap-2 py-0.5"><input type="radio" name="cat" value="" class="accent-accent" checked /> Toate</label></li>
+              {
+                CATEGORIES.map((c) => (
+                  <li>
+                    <label class="flex items-center gap-2 py-0.5">
+                      <input type="radio" name="cat" value={c.slug} class="accent-accent" /> {c.name}
+                    </label>
+                    <ul data-subs-of={c.slug} hidden class="ml-6 mt-1 space-y-1 text-sm">
+                      {c.subs.map((s) => (
+                        <li>
+                          <label class="flex items-center gap-2 py-0.5">
+                            <input type="checkbox" name="sub" value={s.slug} class="accent-accent" /> {s.name}
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </li>
+                ))
+              }
+            </ul>
+          </fieldset>
+
+          <fieldset class="mt-6 border-t border-line pt-5">
+            <legend class="float-left mb-2 w-full font-display text-lg font-bold text-ink">Tehnică de pescuit</legend>
+            <ul class="clear-both space-y-1 text-[0.95rem]">
+              {TECHNIQUES.map((t) => <li><label class="flex items-center gap-2 py-0.5"><input type="checkbox" name="tehnica" value={t.slug} class="accent-accent" /> {t.name}</label></li>)}
+            </ul>
+          </fieldset>
+
+          <fieldset class="mt-6 border-t border-line pt-5">
+            <legend class="float-left mb-2 w-full font-display text-lg font-bold text-ink">Producător</legend>
+            <ul class="clear-both grid grid-cols-2 gap-x-2 gap-y-1 text-[0.95rem] lg:grid-cols-1">
+              {brands.map((b) => <li><label class="flex items-center gap-2 py-0.5"><input type="checkbox" name="brand" value={b} class="accent-accent" /> {b}</label></li>)}
+            </ul>
+          </fieldset>
+
+          <fieldset class="mt-6 border-t border-line pt-5">
+            <legend class="float-left mb-2 w-full font-display text-lg font-bold text-ink">Preț maxim</legend>
+            <div class="clear-both">
+              <input type="range" name="max" min="0" max={maxPrice} step="10" value={maxPrice} class="w-full accent-accent" aria-describedby="max-out" />
+              <p class="text-sm">până la <output id="max-out" class="font-semibold text-ink">{maxPrice} lei</output></p>
+            </div>
+          </fieldset>
+
+          <fieldset class="mt-6 space-y-1.5 border-t border-line pt-5 text-[0.95rem]">
+            <legend class="sr-only">Altele</legend>
+            <label class="flex items-center gap-2"><input type="checkbox" name="promo" value="1" class="accent-accent" /> Doar produse la reducere</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="nou" value="1" class="accent-accent" /> Doar noutăți</label>
+            <label class="flex items-center gap-2"><input type="checkbox" name="test" value="1" class="accent-accent" /> Doar lansete pentru test</label>
+          </fieldset>
+
+          <div class="mt-6 flex gap-2">
+            <button type="reset" class="btn btn-line btn-sm flex-1">Resetează</button>
+            <button type="button" data-filters-close class="btn btn-accent btn-sm flex-1 lg:hidden">Arată produsele</button>
+          </div>
+        </form>
+      </aside>
+
+      <!-- GRID -->
+      <div class="min-w-0 flex-1">
+        <div data-chips class="mb-4 flex flex-wrap gap-2 empty:hidden"></div>
+        <ul data-grid class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
+          {PRODUCTS.map((p, i) => <li><ProductCard p={p} eager={i < 4} /></li>)}
+        </ul>
+        <div data-empty hidden class="card p-10 text-center">
+          <p class="font-medium text-ink">Niciun produs nu se potrivește filtrelor.</p>
+          <button type="button" data-reset class="btn btn-line btn-sm mt-4">Șterge filtrele</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<script>
+  import { CATEGORIES, TECHNIQUES } from '../data/catalog';
+
+  const form = document.getElementById('filters') as HTMLFormElement;
+  const grid = document.querySelector<HTMLElement>('[data-grid]')!;
+  const items = [...grid.querySelectorAll<HTMLElement>(':scope > li')];
+  const sortSel = document.getElementById('sort') as HTMLSelectElement;
+  const maxInput = form.elements.namedItem('max') as HTMLInputElement;
+  const maxAll = Number(maxInput.max);
+  const title = document.querySelector<HTMLElement>('[data-title]')!;
+  const crumb = document.querySelector<HTMLElement>('[data-crumb]')!;
+  const crumbCat = document.querySelector<HTMLElement>('[data-crumb-cat]')!;
+  const chips = document.querySelector<HTMLElement>('[data-chips]')!;
+  const allSubs = CATEGORIES.flatMap((c) => c.subs.map((s) => ({ ...s, cat: c.slug })));
+  const params = new URLSearchParams(location.search);
+  const q = (params.get('q') || '').trim();
+
+  // URL -> form
+  const sub = params.get('sub');
+  const cat = params.get('cat') || (sub ? allSubs.find((s) => s.slug === sub)?.cat : '') || '';
+  (form.querySelector(`input[name=cat][value="${cat}"]`) as HTMLInputElement | null)?.click();
+  if (sub) (form.querySelector(`input[name=sub][value="${sub}"]`) as HTMLInputElement | null)!.checked = true;
+  for (const key of ['tehnica', 'brand']) {
+    const v = params.get(key);
+    if (v) form.querySelectorAll<HTMLInputElement>(`input[name=${key}]`).forEach((i) => (i.checked = i.value === v));
+  }
+  for (const key of ['promo', 'nou', 'test']) {
+    if (params.get(key)) (form.elements.namedItem(key) as HTMLInputElement).checked = true;
+  }
+  if (params.get('sort')) sortSel.value = params.get('sort')!;
+
+  const vals = (name: string) => [...form.querySelectorAll<HTMLInputElement>(`input[name=${name}]:checked`)].map((i) => i.value);
+
+  function apply() {
+    const cat = vals('cat')[0] || '';
+    const subs = vals('sub');
+    const tech = vals('tehnica');
+    const brands = vals('brand');
+    const max = Number(maxInput.value);
+    const promo = (form.elements.namedItem('promo') as HTMLInputElement).checked;
+    const nou = (form.elements.namedItem('nou') as HTMLInputElement).checked;
+    const test = (form.elements.namedItem('test') as HTMLInputElement).checked;
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+
+    form.querySelectorAll<HTMLElement>('[data-subs-of]').forEach((u) => {
+      u.hidden = u.dataset.subsOf !== cat;
+      if (u.hidden) u.querySelectorAll('input').forEach((i) => (i.checked = false));
+    });
+    document.getElementById('max-out')!.textContent = `${max} lei`;
+
+    let shown = 0;
+    for (const li of items) {
+      const d = li.querySelector<HTMLElement>('[data-product]')!.dataset;
+      const ok =
+        (!cat || d.cat === cat) &&
+        (!subs.length || subs.includes(d.sub!)) &&
+        (!tech.length || tech.some((t) => d.tech!.split(' ').includes(t))) &&
+        (!brands.length || brands.includes(d.brand!)) &&
+        Number(d.price) <= max &&
+        (!promo || d.promo) &&
+        (!nou || d.new) &&
+        (!test || d.test) &&
+        words.every((w) => `${d.name} ${d.brand!.toLowerCase()}`.includes(w));
+      li.hidden = !ok;
+      if (ok) shown++;
+    }
+
+    const by: Record<string, (a: DOMStringMap, b: DOMStringMap) => number> = {
+      vandute: (a, b) => Number(b.sold) - Number(a.sold),
+      'pret-asc': (a, b) => Number(a.price) - Number(b.price),
+      'pret-desc': (a, b) => Number(b.price) - Number(a.price),
+      rating: (a, b) => Number(b.rating) - Number(a.rating),
+      reduceri: (a, b) => Number(b.off) - Number(a.off),
+    };
+    const cmp = by[sortSel.value];
+    const ordered = cmp ? [...items].sort((a, b) => cmp(a.querySelector<HTMLElement>('[data-product]')!.dataset, b.querySelector<HTMLElement>('[data-product]')!.dataset)) : items;
+    grid.append(...ordered);
+
+    document.querySelector('[data-count]')!.textContent = shown === 1 ? '1 produs' : `${shown} produse`;
+    document.querySelector<HTMLElement>('[data-empty]')!.hidden = shown > 0;
+
+    // title + breadcrumb
+    const catObj = CATEGORIES.find((c) => c.slug === cat);
+    const subObj = subs.length === 1 ? allSubs.find((s) => s.slug === subs[0]) : undefined;
+    const name = q ? `Rezultate pentru „${q}”` : subObj?.name || catObj?.name || (test ? 'Lansete pentru test' : nou ? 'Noutăți' : promo ? 'Promoții' : tech.length === 1 ? TECHNIQUES.find((t) => t.slug === tech[0])!.name : 'Toate produsele');
+    title.textContent = name;
+    crumb.textContent = name;
+    crumbCat.hidden = !(subObj && catObj);
+    if (catObj) {
+      const a = crumbCat.querySelector('a')!;
+      a.textContent = catObj.name;
+      a.href = `/produse?cat=${catObj.slug}`;
+    }
+    document.title = `${name} | Persky`;
+
+    // active chips
+    chips.replaceChildren();
+    const chip = (label: string, clear: () => void) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-3 py-1.5 text-sm text-ink hover:border-ink';
+      b.innerHTML = `${label} <span aria-hidden="true" class="text-muted">✕</span>`;
+      b.setAttribute('aria-label', `Scoate filtrul ${label}`);
+      b.addEventListener('click', () => {
+        clear();
+        apply();
+      });
+      chips.append(b);
+    };
+    tech.forEach((t) => chip(TECHNIQUES.find((x) => x.slug === t)!.name, () => ((form.querySelector(`input[name=tehnica][value="${t}"]`) as HTMLInputElement).checked = false)));
+    brands.forEach((b) => chip(b, () => ((form.querySelector(`input[name=brand][value="${b}"]`) as HTMLInputElement).checked = false)));
+    if (max < maxAll) chip(`până la ${max} lei`, () => (maxInput.value = String(maxAll)));
+  }
+
+  form.addEventListener('input', apply);
+  form.addEventListener('change', apply);
+  form.addEventListener('reset', () => setTimeout(apply));
+  sortSel.addEventListener('change', apply);
+  document.querySelector('[data-reset]')?.addEventListener('click', () => form.reset());
+  apply();
+
+  // mobile filter sheet
+  const sheet = document.querySelector<HTMLElement>('[data-filters]')!;
+  const setSheet = (open: boolean) => {
+    sheet.classList.toggle('hidden', !open);
+    document.documentElement.style.overflow = open ? 'hidden' : '';
+  };
+  document.querySelector('[data-filters-open]')?.addEventListener('click', () => setSheet(true));
+  sheet.querySelectorAll('[data-filters-close]').forEach((b) => b.addEventListener('click', () => setSheet(false)));
+  sheet.addEventListener('click', (e) => e.target === sheet && setSheet(false));
+</script>

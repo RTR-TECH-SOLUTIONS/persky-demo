@@ -1,0 +1,83 @@
+---
+import '../styles/global.css';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+const { title, description = 'Magazin de pescuit din Brăila: lansete, mulinete, nadă și momeli, cu showroom de 600 mp și livrare în toată țara.' } = Astro.props;
+const fullTitle = title ? `${title} | Persky` : 'Persky · Magazin de pescuit: lansete, mulinete, nadă';
+---
+
+<!doctype html>
+<html lang="ro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <!-- demo de prezentare: nu apare în Google -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body class="min-h-dvh">
+    <a href="#continut" class="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[90] focus:rounded-md focus:bg-ink focus:px-3 focus:py-2 focus:text-white">Sari la conținut</a>
+    <Header />
+    <main id="continut">
+      <slot />
+    </main>
+    <Footer />
+    <div data-toast role="status" aria-live="polite" class="pointer-events-none fixed bottom-5 left-1/2 z-[95] -translate-x-1/2 translate-y-4 rounded-lg bg-ink px-4 py-3 text-sm font-medium text-white opacity-0 shadow-xl transition duration-200"></div>
+  </body>
+</html>
+
+<script>
+  import { addToCart, readFav, toggleFav } from '../lib/cart';
+
+  const toast = document.querySelector<HTMLElement>('[data-toast]');
+  let t: number | undefined;
+  function say(msg: string) {
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.remove('opacity-0', 'translate-y-4');
+    clearTimeout(t);
+    t = window.setTimeout(() => toast.classList.add('opacity-0', 'translate-y-4'), 1800);
+  }
+
+  function paintFavs(favs: string[]) {
+    document.querySelectorAll<HTMLElement>('[data-fav]').forEach((b) => {
+      const on = favs.includes(b.dataset.fav!);
+      b.setAttribute('aria-pressed', String(on));
+      b.querySelector('svg')?.setAttribute('fill', on ? 'currentColor' : 'none');
+    });
+    const c = document.querySelector<HTMLElement>('[data-fav-count]');
+    if (c) {
+      c.textContent = String(favs.length);
+      c.classList.toggle('hidden', favs.length === 0);
+      c.classList.toggle('grid', favs.length > 0);
+    }
+  }
+  paintFavs(readFav());
+  window.addEventListener('fav:update', (e) => paintFavs((e as CustomEvent<string[]>).detail));
+  // product grids rendered later by React islands
+  window.addEventListener('grid:render', () => paintFavs(readFav()));
+
+  // One delegated handler for every "Adaugă în coș" / heart button, static or rendered by an island.
+  document.addEventListener('click', (e) => {
+    const el = e.target as HTMLElement;
+    const add = el.closest<HTMLElement>('[data-add]');
+    if (add) {
+      e.preventDefault();
+      const qtyInput = add.dataset.qtyFrom ? document.querySelector<HTMLInputElement>(add.dataset.qtyFrom) : null;
+      addToCart(JSON.parse(add.dataset.add!), Math.max(1, Number(qtyInput?.value) || 1));
+      return;
+    }
+    const fav = el.closest<HTMLElement>('[data-fav]');
+    if (fav) {
+      e.preventDefault();
+      say(toggleFav(fav.dataset.fav!) ? 'Adăugat la favorite' : 'Scos de la favorite');
+    }
+  });
+</script>

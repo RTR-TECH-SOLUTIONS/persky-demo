@@ -1,0 +1,76 @@
+---
+import Icon from './Icon.astro';
+import Stars from './Stars.astro';
+import { discount, priceParts, type Product } from '../data/catalog';
+
+interface Props {
+  p: Product;
+  eager?: boolean;
+}
+const { p, eager = false } = Astro.props;
+const off = discount(p);
+const payload = JSON.stringify({ id: p.id, slug: p.slug, name: p.name, price: p.price, img: p.img });
+const [pi, pd] = priceParts(p.price);
+const old = p.oldPrice ? priceParts(p.oldPrice) : null;
+const stock = { in: ['În stoc', 'bg-accent'], low: ['Stoc limitat', 'bg-clear'], order: ['La comandă, 5-7 zile', 'bg-muted'] }[p.stock];
+---
+
+<article
+  class="group relative flex h-full flex-col rounded-md border border-line bg-white transition-colors duration-150 hover:border-ink-2/40"
+  data-product
+  data-cat={p.cat}
+  data-sub={p.sub}
+  data-brand={p.brand}
+  data-tech={p.techniques.join(' ')}
+  data-price={p.price}
+  data-sold={p.sold}
+  data-rating={p.rating}
+  data-new={p.isNew ? '1' : ''}
+  data-promo={p.oldPrice ? '1' : ''}
+  data-test={p.testable ? '1' : ''}
+  data-off={off}
+  data-name={p.name.toLowerCase()}
+>
+  <div class="relative p-2">
+    <a href={`/produs/${p.slug}`} tabindex="-1" aria-hidden="true" class="block rounded bg-photo">
+      <img src={`/img/${p.img}.webp`} alt="" width="400" height="400" loading={eager ? 'eager' : 'lazy'} class="aspect-square w-full object-contain" />
+    </a>
+    <div class="absolute left-3 top-3 flex flex-col items-start gap-1">
+      {off > 0 && <span class="rounded-sm bg-sale px-1.5 py-px text-[0.75rem] font-bold text-white">-{off}%</span>}
+      {p.isNew && <span class="rounded-sm bg-accent px-1.5 py-px text-[0.75rem] font-bold text-white">Nou</span>}
+    </div>
+    <button
+      type="button"
+      data-fav={p.id}
+      aria-pressed="false"
+      aria-label={`Adaugă la favorite: ${p.name}`}
+      class="absolute right-3 top-3 grid size-8 place-items-center rounded-full bg-white text-ink-2 ring-1 ring-line hover:text-sale aria-pressed:text-sale"
+    >
+      <Icon name="heart" size={16} />
+    </button>
+  </div>
+
+  <div class="flex flex-1 flex-col px-3 pb-3">
+    <h3 class="text-[0.9rem] font-medium leading-snug">
+      <a href={`/produs/${p.slug}`} class="line-clamp-2 min-h-[2.5em] text-ink hover:text-accent hover:underline">{p.name}</a>
+    </h3>
+    <div class="mt-1 flex items-center gap-1 text-xs text-muted">
+      <Stars rating={p.rating} size={12} />
+      <span>({p.reviews})</span>
+    </div>
+    <p class="mt-1.5 flex items-center gap-1.5 text-xs text-ink-2">
+      <span class={`size-1.5 rounded-full ${stock[1]}`}></span>{stock[0]}
+      {p.testable && <span class="text-muted">· se poate testa</span>}
+    </p>
+    <div class="mt-auto pt-2">
+      {old ? <s class="block text-xs text-muted">{old[0]},{old[1]} lei</s> : <span class="block text-xs">&nbsp;</span>}
+      <p class={`price text-[1.3rem] leading-none ${off ? 'text-sale' : ''}`}>
+        {pi}<sup class="ml-px text-[0.62em]">{pd}</sup> <span class="text-[0.7em] font-semibold">lei</span>
+      </p>
+    </div>
+    <button type="button" data-add={payload} class="btn btn-accent btn-sm mt-2.5 w-full">
+      <Icon name="cart" size={16} />
+      <span class="sm:hidden">În coș</span><span class="hidden sm:inline">Adaugă în coș</span>
+    </button>
+  </div>
+</article>

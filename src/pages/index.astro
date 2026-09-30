@@ -1,0 +1,396 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import Stars from '../components/Stars.astro';
+import ProductCard from '../components/ProductCard.astro';
+import { BRAND_LOGOS, CATEGORIES, GUIDES, PRODUCTS, REVIEWS, SHOP, TOP_CATEGORIES, type Technique } from '../data/catalog';
+
+const slides = [
+  {
+    img: 'h01',
+    title: 'Reduceri la echipament de crap',
+    text: 'Lansete, mulinete big pit, avertizoare și rod pod-uri cu până la 20% mai ieftin, până pe 31 octombrie.',
+    cta: 'Vezi produsele la reducere',
+    href: '/produse?tehnica=crap&promo=1',
+  },
+  {
+    img: 'h02',
+    title: 'Totul pentru pescuitul la feeder',
+    text: 'Lansete de 3.60-3.90 m, mulinete cu frână față, nadă, pelete și momitoare method.',
+    cta: 'Vezi categoria',
+    href: '/produse?tehnica=feeder',
+  },
+];
+
+const benefits = [
+  { icon: 'truck', t: 'Transport gratuit', s: `la comenzi peste ${SHOP.freeShipping} lei` },
+  { icon: 'return', t: 'Retur 30 de zile', s: 'fără costuri' },
+  { icon: 'card', t: 'Plată card, ramburs', s: 'sau în rate' },
+  { icon: 'shield', t: 'Garanție 2 ani', s: 'produse originale' },
+  { icon: 'phone', t: 'Consultanță', s: SHOP.phone },
+] as const;
+
+const tabs: { slug: Technique | 'nada'; name: string }[] = [
+  { slug: 'crap', name: 'Crap' },
+  { slug: 'feeder', name: 'Feeder' },
+  { slug: 'rapitor', name: 'Răpitori' },
+  { slug: 'nada', name: 'Nadă și momeli' },
+];
+const top = (slug: string) =>
+  [...PRODUCTS]
+    .filter((p) => (slug === 'nada' ? p.cat === 'nada-momeli' : p.techniques.includes(slug as Technique)))
+    .sort((a, b) => b.sold - a.sold)
+    .slice(0, 5);
+
+const fresh = PRODUCTS.filter((p) => p.isNew).slice(0, 5);
+const hide = (j: number) => [j === 4 && 'hidden xl:block', j === 3 && 'md:hidden xl:block'];
+---
+
+<Layout>
+  <!-- CATEGORII + BANNER -->
+  <section class="wrap pt-4">
+    <div class="flex gap-4">
+      <nav aria-label="Categorii" class="hidden h-[440px] w-[260px] shrink-0 rounded-md border border-line bg-white py-1.5 lg:block">
+        <ul>
+          {
+            CATEGORIES.map((c) => (
+              <li>
+                <a href={`/produse?cat=${c.slug}`} class="flex items-center justify-between px-4 py-[0.6rem] text-[0.95rem] text-ink hover:bg-page hover:text-accent">
+                  {c.name}
+                  <Icon name="right" size={15} class="text-muted" />
+                </a>
+              </li>
+            ))
+          }
+          <li class="mt-1 border-t border-line pt-1">
+            <a href="/produse?test=1" class="flex items-center justify-between px-4 py-[0.6rem] text-[0.95rem] font-semibold text-accent hover:bg-page">
+              Lansete pentru test
+              <Icon name="right" size={15} />
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <div class="relative min-w-0 flex-1 overflow-hidden rounded-md bg-bar" data-slider aria-roledescription="carusel" aria-label="Oferte">
+        {
+          slides.map((s, i) => (
+            <div data-slide class:list={['h-full transition-opacity duration-500', i === 0 ? 'relative' : 'absolute inset-0 pointer-events-none opacity-0']} aria-hidden={i !== 0 ? 'true' : undefined}>
+              <img
+                src={`/img/${s.img}.webp`}
+                alt=""
+                width="1800"
+                height="1200"
+                loading={i === 0 ? 'eager' : 'lazy'}
+                fetchpriority={i === 0 ? 'high' : undefined}
+                class="h-[380px] w-full object-cover lg:h-[440px]"
+              />
+              <div class="absolute inset-0 bg-gradient-to-r from-black/65 via-black/25 to-transparent" />
+              <div class="absolute bottom-0 left-0 max-w-[560px] p-6 sm:p-10">
+                <h2 class="text-[clamp(1.7rem,1.2rem+2vw,2.6rem)] font-bold leading-[1.1] text-white">{s.title}</h2>
+                <p class="mt-3 max-w-[44ch] text-white/85">{s.text}</p>
+                <a href={s.href} class="btn btn-accent mt-5">
+                  {s.cta}
+                </a>
+              </div>
+            </div>
+          ))
+        }
+        <div class="absolute bottom-6 right-6 z-10 hidden gap-1.5 sm:flex">
+          <button type="button" data-prev class="grid size-9 place-items-center rounded bg-white/90 text-ink hover:bg-white" aria-label="Oferta anterioară"><Icon name="left" size={18} /></button>
+          <button type="button" data-next class="grid size-9 place-items-center rounded bg-white/90 text-ink hover:bg-white" aria-label="Oferta următoare"><Icon name="right" size={18} /></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BENEFICII: un singur rând, ca la retaileri -->
+    <ul class="no-scrollbar mt-4 flex overflow-x-auto rounded-md border border-line bg-white md:grid md:grid-cols-5" aria-label="Avantaje">
+      {
+        benefits.map((b) => (
+          <li class="flex min-w-[200px] items-center gap-3 border-r border-line px-4 py-3.5 last:border-r-0 md:min-w-0">
+            <Icon name={b.icon} size={26} stroke={1.5} class="shrink-0 text-accent" />
+            <span class="leading-tight">
+              <span class="block text-[0.92rem] font-semibold text-ink">{b.t}</span>
+              <span class="text-[0.8rem] text-muted">{b.s}</span>
+            </span>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- TOP CATEGORII -->
+  <section class="wrap mt-12">
+    <div class="sec-head">
+      <h2 class="h-section">Top categorii</h2>
+      <a href="/produse">Toate categoriile</a>
+    </div>
+    <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {
+        TOP_CATEGORIES.map((c) => (
+          <li>
+            <a href={c.href} class="group block overflow-hidden rounded-md border border-line bg-white">
+              <span class="block bg-photo p-3">
+                <img src={`/img/${c.img}.webp`} alt="" width="400" height="400" loading="lazy" class="aspect-[4/3] w-full object-contain" />
+              </span>
+              <span class="block bg-bar px-3 py-2.5 text-center text-[0.95rem] font-semibold text-white transition-colors group-hover:bg-accent">{c.name}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- CELE MAI VÂNDUTE -->
+  <section class="wrap mt-12" data-tabs>
+    <div class="sec-head flex-wrap">
+      <h2 class="h-section">Cele mai vândute</h2>
+      <div role="tablist" aria-label="Tehnică de pescuit" class="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+        {
+          tabs.map((t, i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`tab-${t.slug}`}
+              aria-controls={`panel-${t.slug}`}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              class="shrink-0 rounded px-3 py-1.5 text-sm font-semibold text-ink-2 hover:text-ink aria-selected:bg-ink aria-selected:text-white"
+            >
+              {t.name}
+            </button>
+          ))
+        }
+      </div>
+    </div>
+    {
+      tabs.map((t, i) => (
+        <div role="tabpanel" id={`panel-${t.slug}`} aria-labelledby={`tab-${t.slug}`} hidden={i !== 0} class="mt-5">
+          <ul class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+            {top(t.slug).map((p, j) => (
+              <li class:list={hide(j)}>
+                <ProductCard p={p} />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </section>
+
+  <!-- PRODUCĂTORI -->
+  <section class="wrap mt-12" id="producatori">
+    <div class="sec-head">
+      <h2 class="h-section">Cei mai căutați producători</h2>
+      <a href="/produse">Vezi toți producătorii</a>
+    </div>
+    <ul class="mt-5 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-7">
+      {
+        BRAND_LOGOS.map((b) => (
+          <li>
+            <a href={`/produse?brand=${encodeURIComponent(b.name)}`} class="grid h-20 place-items-center rounded-md border border-line bg-white px-4 hover:border-ink-2/40" title={b.name}>
+              <img src={`/brands/${b.file}`} alt={b.name} loading="lazy" class="max-h-9 w-auto max-w-full object-contain" />
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- DOUĂ BANNERE -->
+  <section class="wrap mt-12 grid gap-4 md:grid-cols-2">
+    {
+      [
+        { img: 'b01', big: 'Produse noi', small: 'Mulinete, năluci și accesorii sosite în septembrie', cta: 'Vezi noutățile', href: '/produse?nou=1' },
+        { img: 'b02', big: 'Retur gratuit 30 de zile', small: 'Dacă produsul nu ți se potrivește, îl returnezi fără costuri', cta: 'Cum returnez', href: '#' },
+      ].map((b) => (
+        <a href={b.href} class="group relative block overflow-hidden rounded-md bg-bar">
+          <img src={`/img/${b.img}.webp`} alt="" width="900" height="600" loading="lazy" class="aspect-[16/9] w-full object-cover" />
+          <span class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          <span class="absolute bottom-0 left-0 p-5 sm:p-7">
+            <span class="block text-[clamp(1.4rem,1.1rem+1.2vw,2rem)] font-bold leading-tight text-white">{b.big}</span>
+            <span class="mt-1 block max-w-[40ch] text-sm text-white/85">{b.small}</span>
+            <span class="btn btn-accent btn-sm mt-3">{b.cta}</span>
+          </span>
+        </a>
+      ))
+    }
+  </section>
+
+  <!-- LANSETE PENTRU TEST -->
+  <section class="wrap mt-12">
+    <div class="grid overflow-hidden rounded-md border border-line bg-white lg:grid-cols-2">
+      <img src="/img/t01.webp" alt="Lansete montate la balta de test" width="900" height="600" loading="lazy" class="h-full min-h-[240px] w-full object-cover" />
+      <div class="p-6 sm:p-9">
+        <h2 class="h-section">Lansete pentru test</h2>
+        <p class="mt-3">
+          Unele lansete le poți încerca înainte să le cumperi. Vii la magazin, le montezi mulineta ta și le arunci pe balta de lângă depozit. Modelele disponibile au mențiunea „se poate testa”.
+        </p>
+        <ul class="mt-5 space-y-2.5 text-[0.95rem]">
+          <li class="flex gap-2.5"><Icon name="check" size={20} class="mt-0.5 shrink-0 text-accent" /> Testul este gratuit, sâmbăta între 8:00 și 14:00</li>
+          <li class="flex gap-2.5"><Icon name="check" size={20} class="mt-0.5 shrink-0 text-accent" /> Programare la telefon sau pe WhatsApp, cu o zi înainte</li>
+          <li class="flex gap-2.5"><Icon name="check" size={20} class="mt-0.5 shrink-0 text-accent" /> Dacă o cumperi, plătești prețul de pe site</li>
+        </ul>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="/produse?test=1" class="btn btn-accent">Vezi lansetele de test</a>
+          <a href={SHOP.whatsapp} class="btn btn-line" target="_blank" rel="noopener">Programare pe WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NOUTĂȚI -->
+  <section class="wrap mt-12">
+    <div class="sec-head">
+      <h2 class="h-section">Noutăți</h2>
+      <a href="/produse?nou=1">Toate noutățile</a>
+    </div>
+    <ul class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      {
+        fresh.map((p, j) => (
+          <li class:list={hide(j)}>
+            <ProductCard p={p} />
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- RATE -->
+  <section class="wrap mt-12">
+    <div class="flex flex-col items-start justify-between gap-4 rounded-md bg-accent px-6 py-6 text-white sm:flex-row sm:items-center sm:px-9">
+      <div>
+        <p class="text-[clamp(1.3rem,1.1rem+0.8vw,1.7rem)] font-bold leading-tight">Cumperi acum, plătești în 3-12 rate</p>
+        <p class="mt-1 text-sm text-white/85">Fără dobândă cu cardurile de credit partenere, la comenzi de peste 500 lei.</p>
+      </div>
+      <a href="#" class="btn shrink-0 bg-white text-ink hover:bg-page">Vezi detalii</a>
+    </div>
+  </section>
+
+  <!-- RECENZII GOOGLE -->
+  <section class="mt-12 bg-bar py-12 text-white">
+    <div class="wrap">
+      <div class="flex flex-col items-center text-center">
+        <Stars rating={5} size={20} />
+        <p class="mt-2 text-sm text-white/80">(nota <strong class="text-white">4,8 / 5</strong> din 1.912 recenzii pe Google)</p>
+      </div>
+      <ul class="no-scrollbar -mx-4 mt-7 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-2 md:px-0 lg:grid-cols-4">
+        {
+          REVIEWS.map((r, i) => (
+            <li class="w-[80%] shrink-0 snap-start rounded-md bg-bar-2 p-5 md:w-auto">
+              <div class="flex items-center justify-between">
+                <p class="font-semibold">{r.name}</p>
+                <span class="text-xs text-white/50">{['acum 3 zile', 'acum o săptămână', 'acum 2 săptămâni', 'acum o lună'][i]}</span>
+              </div>
+              <Stars rating={5} size={13} class="mt-1" />
+              <p class="mt-3 text-[0.92rem] leading-relaxed text-white/85">{r.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+      <div class="mt-7 flex flex-wrap justify-center gap-3">
+        <a href="#" class="btn btn-accent btn-sm">Citește recenziile pe Google</a>
+        <a href="#" class="btn btn-sm border border-white/30 text-white hover:bg-white/10">Lasă o recenzie</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- BLOG -->
+  <section class="wrap mt-12" id="ghiduri">
+    <div class="sec-head">
+      <h2 class="h-section">Articole noi pe blog</h2>
+      <a href="#">Toate articolele</a>
+    </div>
+    <ul class="mt-5 grid gap-4 md:grid-cols-3">
+      {
+        GUIDES.map((g) => (
+          <li>
+            <a href="#" class="group block h-full overflow-hidden rounded-md border border-line bg-white">
+              <img src={`/img/${g.img}.webp`} alt="" width="600" height="400" loading="lazy" class="aspect-[16/10] w-full object-cover" />
+              <div class="p-4">
+                <p class="text-xs text-muted">{g.date}</p>
+                <h3 class="mt-1 text-[1.05rem] font-bold leading-snug group-hover:text-accent group-hover:underline">{g.title}</h3>
+                <p class="mt-1.5 text-sm">{g.excerpt}</p>
+              </div>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <!-- DESPRE MAGAZIN -->
+  <section class="wrap mt-12" id="magazin">
+    <div class="overflow-hidden rounded-md border border-line bg-white">
+      <div class="grid lg:grid-cols-2">
+        <div class="space-y-3 p-6 text-[0.95rem] sm:p-9">
+          <h2 class="text-xl font-bold">Persky, magazin de pescuit online și fizic în Brăila</h2>
+          <p>
+            Vindem articole de pescuit din 2009. Magazinul fizic e pe {SHOP.address}, iar online găsești peste 24.000 de produse pentru pescuit la crap, feeder, staționar și răpitori. Comenzile plasate până la ora 15:00 se expediază în aceeași zi.
+          </p>
+          <h3 class="pt-2 text-lg font-bold">Branduri originale</h3>
+          <p>Lucrăm direct cu distribuitorii Shimano, Daiwa, Okuma, Rapala, Nash, Trabucco și Savage Gear. Toate produsele au factură și garanție.</p>
+          <h3 class="pt-2 text-lg font-bold">Nu știi ce să alegi?</h3>
+          <p>Sună-ne la {SHOP.phone} ({SHOP.hours}) și te ajutăm să alegi lanseta, mulineta sau firul potrivit pentru locul unde pescuiești.</p>
+        </div>
+        <img src="/img/s01.webp" alt="" width="900" height="600" loading="lazy" class="h-full min-h-[260px] w-full object-cover" />
+      </div>
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-bar px-6 py-3.5 text-white sm:px-9">
+        <p class="flex items-center gap-2 text-sm"><Icon name="pin" size={18} class="text-white/60" /> {SHOP.address} · {SHOP.hours}</p>
+        <a href="#" class="btn btn-accent btn-sm">Vezi detalii magazin</a>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const slider = document.querySelector<HTMLElement>('[data-slider]');
+  if (slider) {
+    const slides = [...slider.querySelectorAll<HTMLElement>('[data-slide]')];
+    let cur = 0;
+    let timer: number | undefined;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const go = (n: number) => {
+      cur = (n + slides.length) % slides.length;
+      slides.forEach((s, i) => {
+        const on = i === cur;
+        s.classList.toggle('opacity-0', !on);
+        s.classList.toggle('pointer-events-none', !on);
+        s.classList.toggle('absolute', !on);
+        s.classList.toggle('inset-0', !on);
+        s.classList.toggle('relative', on);
+        if (on) s.removeAttribute('aria-hidden');
+        else s.setAttribute('aria-hidden', 'true');
+      });
+    };
+    const auto = () => {
+      clearInterval(timer);
+      if (!reduce) timer = window.setInterval(() => go(cur + 1), 7000);
+    };
+    slider.querySelector('[data-prev]')?.addEventListener('click', () => (go(cur - 1), auto()));
+    slider.querySelector('[data-next]')?.addEventListener('click', () => (go(cur + 1), auto()));
+    auto();
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+    const select = (t: HTMLButtonElement) => {
+      tabs.forEach((x) => {
+        const on = x === t;
+        x.setAttribute('aria-selected', String(on));
+        x.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(x.getAttribute('aria-controls')!);
+        if (panel) panel.hidden = !on;
+      });
+    };
+    tabs.forEach((t, i) => {
+      t.tabIndex = i === 0 ? 0 : -1;
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        const n = tabs[(i + d + tabs.length) % tabs.length];
+        select(n);
+        n.focus();
+      });
+    });
+  });
+</script>

@@ -1,0 +1,8 @@
+node_modules
+dist
+.astro
+.playwright-mcp
+.DS_Store
+# surse mari de imagini (generate / Pexels); versiunile optimizate sunt în public/img
+raw/
+raw-real/*.jpg

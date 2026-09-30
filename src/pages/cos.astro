@@ -1,0 +1,10 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CartPage from '../components/CartPage.tsx';
+---
+
+<Layout title="Coșul meu">
+  <div class="wrap pt-6">
+    <CartPage client:load />
+  </div>
+</Layout>

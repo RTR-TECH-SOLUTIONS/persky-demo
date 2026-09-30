@@ -1,0 +1,279 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Icon from '../../components/Icon.astro';
+import Stars from '../../components/Stars.astro';
+import ProductCard from '../../components/ProductCard.astro';
+import { PRODUCTS, SHOP, catName, discount, priceParts, subName, TECHNIQUES, type Product } from '../../data/catalog';
+
+export function getStaticPaths() {
+  return PRODUCTS.map((p) => ({ params: { slug: p.slug }, props: { p } }));
+}
+
+const { p } = Astro.props as { p: Product };
+const off = discount(p);
+const lei = (n: number) => n.toLocaleString('ro-RO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const [pi, pd] = priceParts(p.price);
+const payload = JSON.stringify({ id: p.id, slug: p.slug, name: p.name, price: p.price, img: p.img });
+const similar = PRODUCTS.filter((x) => x.id !== p.id && (x.sub === p.sub || x.cat === p.cat || x.techniques.some((t) => p.techniques.includes(t))))
+  .sort((a, b) => Number(b.sub === p.sub) - Number(a.sub === p.sub) || Number(b.cat === p.cat) - Number(a.cat === p.cat) || b.sold - a.sold)
+  .slice(0, 5);
+const stock = {
+  in: { label: 'În stoc', note: 'Livrare în 24-48 de ore', cls: 'text-accent' },
+  low: { label: 'Stoc limitat', note: 'Ultimele bucăți, livrare în 24-48 de ore', cls: 'text-clear' },
+  order: { label: 'La comandă', note: 'Livrare în 5-7 zile lucrătoare', cls: 'text-ink-2' },
+}[p.stock];
+const reviewSamples = [
+  { n: 'Ionuț P.', r: 5, d: '12 septembrie 2026', t: 'Exact ce scrie în descriere. Am folosit-o două weekenduri la rând, fără nicio problemă.' },
+  { n: 'Gabriel M.', r: 5, d: '28 august 2026', t: 'Livrare rapidă și bine ambalat. La telefon m-au sfătuit și ce fir să pun.' },
+  { n: 'Sorin T.', r: 4, d: '3 august 2026', t: 'Raport calitate-preț foarte bun pentru ce am plătit.' },
+];
+// distribution of stars that matches the product's average and review count
+const dist = (() => {
+  const five = Math.round(p.reviews * Math.min(0.9, (p.rating - 3.6) / 1.4));
+  const four = Math.round((p.reviews - five) * 0.7);
+  const three = Math.round((p.reviews - five - four) * 0.7);
+  const two = Math.round((p.reviews - five - four - three) * 0.6);
+  return [five, four, three, two, Math.max(0, p.reviews - five - four - three - two)];
+})();
+const techNames = p.techniques.map((t) => ({ crap: 'Crap', feeder: 'Feeder', rapitor: 'Răpitori', stationar: 'Staționar' })[t]).join(', ');
+const specs: [string, string][] = [...p.specs, ['Producător', p.brand], ['Tehnică de pescuit', techNames], ['Cod produs', p.code]];
+---
+
+<Layout title={p.name} description={p.short}>
+  <div class="wrap pt-5">
+    <nav aria-label="Breadcrumb" class="text-sm text-muted">
+      <ol class="flex flex-wrap gap-1.5">
+        <li><a href="/" class="hover:text-ink hover:underline">Acasă</a> /</li>
+        <li><a href={`/produse?cat=${p.cat}`} class="hover:text-ink hover:underline">{catName(p.cat)}</a> /</li>
+        <li><a href={`/produse?sub=${p.sub}`} class="hover:text-ink hover:underline">{subName(p.sub)}</a></li>
+      </ol>
+    </nav>
+
+    <div class="mt-4 grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+      <!-- GALERIE -->
+      <div>
+        <div class="card relative overflow-hidden">
+          <img src={`/img/${p.img}.webp`} alt={p.name} width="800" height="800" fetchpriority="high" class="aspect-square w-full bg-photo object-contain" />
+          <div class="absolute left-4 top-4 flex flex-col items-start gap-1.5">
+            {off > 0 && <span class="rounded bg-sale px-2 py-0.5 text-sm font-bold text-white">-{off}%</span>}
+            {p.isNew && <span class="rounded bg-accent px-2 py-0.5 text-sm font-bold text-white">Nou</span>}
+          </div>
+        </div>
+      </div>
+
+      <!-- INFO -->
+      <div>
+        <a href={`/produse?brand=${encodeURIComponent(p.brand)}`} class="text-sm font-semibold text-accent hover:underline">{p.brand}</a>
+        <h1 class="mt-1 text-[clamp(1.45rem,1.2rem+1vw,1.9rem)] font-bold leading-tight">{p.name}</h1>
+        <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+          <a href="#recenzii" class="flex items-center gap-1.5 hover:text-ink">
+            <Stars rating={p.rating} /> <span>{p.rating.toLocaleString('ro-RO')} ({p.reviews} păreri)</span>
+          </a>
+          <span>Cod produs: {p.code}</span>
+        </div>
+
+        <p class="mt-4 text-[1.02rem]">{p.short}</p>
+
+        <div class="card mt-5 p-5">
+          <div class="flex items-end gap-3">
+            <span class={`price text-[2.3rem] leading-none ${off ? 'text-sale' : ''}`}>{pi}<sup class="text-[0.55em]">{pd}</sup> <span class="text-lg">lei</span></span>
+            {p.oldPrice && <s class="pb-1 text-muted">{lei(p.oldPrice)} lei</s>}
+            {off > 0 && <span class="pb-1 text-sm font-semibold text-sale">economisești {lei(p.oldPrice! - p.price)} lei</span>}
+          </div>
+          <p class="mt-1 text-sm text-muted">sau de la {lei(Math.ceil(p.price / 6))} lei pe lună, în 6 rate</p>
+
+          <p class={`mt-4 flex items-center gap-2 text-sm font-semibold ${stock.cls}`}>
+            <Icon name="check" size={18} />
+            {stock.label} <span class="font-normal text-muted">· {stock.note}</span>
+          </p>
+
+          <div class="mt-4 flex gap-2">
+            <div class="flex items-center rounded-lg border border-line">
+              <button type="button" data-step="-1" class="grid size-11 place-items-center" aria-label="Scade cantitatea"><Icon name="minus" size={16} /></button>
+              <label for="qty" class="sr-only">Cantitate</label>
+              <input id="qty" type="number" min="1" max="99" value="1" inputmode="numeric" class="w-10 [appearance:textfield] text-center font-semibold text-ink focus:outline-none [&::-webkit-inner-spin-button]:appearance-none" />
+              <button type="button" data-step="1" class="grid size-11 place-items-center" aria-label="Crește cantitatea"><Icon name="plus" size={16} /></button>
+            </div>
+            <button type="button" data-add={payload} data-qty-from="#qty" class="btn btn-accent flex-1 text-base">
+              <Icon name="cart" /> Adaugă în coș
+            </button>
+            <button type="button" data-fav={p.id} aria-pressed="false" aria-label="Adaugă la favorite" class="grid size-11 shrink-0 place-items-center rounded-lg border border-line text-ink-2 hover:text-sale aria-pressed:text-sale">
+              <Icon name="heart" />
+            </button>
+          </div>
+        </div>
+
+        {
+          p.testable && (
+            <div class="mt-4 flex gap-3 rounded-lg border border-accent/30 bg-accent-soft p-4 text-sm">
+              <Icon name="rod" size={22} class="mt-0.5 shrink-0 text-accent" />
+              <p>
+                <strong class="text-ink">Se poate testa înainte de cumpărare.</strong> Sâmbăta, pe balta noastră de la Chiscani, cu mulineta ta.{' '}
+                <a href={SHOP.whatsapp} target="_blank" rel="noopener" class="font-semibold text-accent underline">Programează pe WhatsApp</a>
+              </p>
+            </div>
+          )
+        }
+
+        <ul class="mt-5 grid gap-2.5 text-sm sm:grid-cols-2">
+          <li class="flex items-center gap-2.5"><Icon name="truck" class="shrink-0 text-accent" /> Transport gratuit peste {SHOP.freeShipping} lei</li>
+          <li class="flex items-center gap-2.5"><Icon name="return" class="shrink-0 text-accent" /> Retur gratuit în 30 de zile</li>
+          <li class="flex items-center gap-2.5"><Icon name="shield" class="shrink-0 text-accent" /> Garanție 2 ani, produs original</li>
+          <li class="flex items-center gap-2.5"><Icon name="store" class="shrink-0 text-accent" /> Ridicare din magazinul din Brăila</li>
+        </ul>
+
+        <p class="mt-5 text-sm">
+          Nu ești sigur că e potrivit? Sună la <a href={SHOP.phoneHref} class="font-semibold text-ink underline">{SHOP.phone}</a>, vorbești cu cineva care pescuiește.
+        </p>
+      </div>
+    </div>
+
+    <!-- DETALII: tab-uri ca la retaileri -->
+    <section class="mt-10 rounded-md border border-line bg-white" data-tabs>
+      <div role="tablist" aria-label="Detalii produs" class="no-scrollbar flex overflow-x-auto border-b border-line px-2 sm:px-4">
+        {
+          [
+            ['descriere', 'Descriere'],
+            ['specificatii', 'Specificații'],
+            ['pareri', `Păreri (${p.reviews})`],
+          ].map(([id, label], i) => (
+            <button
+              type="button"
+              role="tab"
+              id={`t-${id}`}
+              aria-controls={`p-${id}`}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              class="-mb-px shrink-0 border-b-[3px] border-transparent px-4 py-3.5 text-[0.95rem] font-semibold text-muted hover:text-ink aria-selected:border-accent aria-selected:text-ink"
+            >
+              {label}
+            </button>
+          ))
+        }
+      </div>
+
+      <div role="tabpanel" id="p-descriere" aria-labelledby="t-descriere" class="p-5 sm:p-8">
+        <div class="max-w-[72ch] space-y-3">
+          <p>{p.short}</p>
+          <p>
+            Produs original {p.brand}, cu factură și garanție de 2 ani. Dacă nu ți se potrivește, îl poți returna în 30 de zile, fără costuri.
+          </p>
+          <h3 class="pt-2 font-bold">Caracteristici principale</h3>
+          <ul class="list-disc space-y-1 pl-5">
+            {p.specs.slice(0, 4).map(([k, v]) => <li><span class="text-muted">{k}:</span> <span class="font-medium text-ink">{v}</span></li>)}
+          </ul>
+        </div>
+      </div>
+
+      <div role="tabpanel" id="p-specificatii" aria-labelledby="t-specificatii" hidden class="p-5 sm:p-8">
+        <table class="w-full max-w-[760px] overflow-hidden rounded border border-line text-[0.93rem]">
+          <tbody>
+            {
+              specs.map(([k, v], i) => (
+                <tr class:list={['border-b border-line last:border-0', i % 2 === 0 && 'bg-page/70']}>
+                  <th scope="row" class="w-[42%] border-r border-line px-4 py-2.5 text-left font-medium text-ink-2">{k}</th>
+                  <td class="px-4 py-2.5 font-semibold text-ink">{v}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <div role="tabpanel" id="p-pareri" aria-labelledby="t-pareri" hidden class="p-5 sm:p-8">
+        <div class="grid gap-8 lg:grid-cols-[300px_1fr]">
+          <div>
+            <div class="flex items-end gap-3">
+              <span class="text-5xl font-bold leading-none text-ink">{p.rating.toLocaleString('ro-RO')}</span>
+              <div class="pb-1">
+                <Stars rating={p.rating} size={16} />
+                <p class="text-sm text-muted">{p.reviews} păreri</p>
+              </div>
+            </div>
+            <ul class="mt-5 space-y-1.5 text-sm">
+              {
+                dist.map((c, i) => (
+                  <li class="flex items-center gap-2.5">
+                    <span class="w-14 shrink-0 text-ink-2">{5 - i} {i === 4 ? "stea" : "stele"}</span>
+                    <span class="h-2 flex-1 overflow-hidden rounded-full bg-line">
+                      <span class="block h-full rounded-full bg-star" style={`width:${Math.round((c / p.reviews) * 100)}%`} />
+                    </span>
+                    <span class="w-7 shrink-0 text-right tabular-nums text-muted">{c}</span>
+                  </li>
+                ))
+              }
+            </ul>
+            <button type="button" class="btn btn-accent btn-sm mt-5 w-full">Scrie o părere</button>
+          </div>
+
+          <ul class="divide-y divide-line border-t border-line lg:border-t-0">
+            {
+              reviewSamples.map((r) => (
+                <li class="py-4 first:pt-4 lg:first:pt-0">
+                  <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Stars rating={r.r} size={14} />
+                    <p class="font-semibold text-ink">{r.n}</p>
+                    <span class="flex items-center gap-1 text-xs font-medium text-accent"><Icon name="check" size={14} /> Cumpărător verificat</span>
+                    <span class="ml-auto text-xs text-muted">{r.d}</span>
+                  </div>
+                  <p class="mt-2 text-[0.95rem]">{r.t}</p>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIMILARE -->
+    <section class="mt-12">
+      <h2 class="h-section">Produse similare</h2>
+      <ul class="mt-5 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-5">
+        {
+          similar.map((s, j) => (
+            <li class:list={[j === 4 && 'hidden xl:block', j === 3 && 'md:hidden xl:block']}>
+              <ProductCard p={s} />
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-tabs]').forEach((root) => {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[role=tab]')];
+    const select = (t: HTMLButtonElement) =>
+      tabs.forEach((x) => {
+        const on = x === t;
+        x.setAttribute('aria-selected', String(on));
+        x.tabIndex = on ? 0 : -1;
+        document.getElementById(x.getAttribute('aria-controls')!)!.hidden = !on;
+      });
+    tabs.forEach((t, i) => {
+      t.tabIndex = i === 0 ? 0 : -1;
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+        if (!d) return;
+        const n = tabs[(i + d + tabs.length) % tabs.length];
+        select(n);
+        n.focus();
+      });
+    });
+    // the rating link under the title opens the reviews tab
+    document.querySelector('a[href="#recenzii"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const t = document.getElementById('t-pareri') as HTMLButtonElement;
+      select(t);
+      root.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  const qty = document.getElementById('qty') as HTMLInputElement | null;
+  document.querySelectorAll<HTMLButtonElement>('[data-step]').forEach((b) =>
+    b.addEventListener('click', () => {
+      if (qty) qty.value = String(Math.max(1, Math.min(99, (Number(qty.value) || 1) + Number(b.dataset.step))));
+    }),
+  );
+</script>
